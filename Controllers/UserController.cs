@@ -24,45 +24,43 @@ namespace AccountingApp.Controllers
         [HttpPost("register")]
         public IActionResult Register(string username, string password)
         {
-            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password)) //проверка заполнения имя/пароль
+            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
             {
-                return BadRequest("Error 400. Заполните пустые поля");
+                return BadRequest("Error 400. Г‡Г ГЇГ®Г«Г­ГЁГІГҐ ГЇГіГ±ГІГ»ГҐ ГЇГ®Г«Гї");
             }
 
-            if (_context.Users.Any(u => u.Username == username)) //проверка свободного имени
+            if (_context.Users.Any(u => u.Username == username))
             {
-                return Conflict("Error 409. Пользователь с указанным именем уже существует");
+                return Conflict("Error 409. ГЏГ®Г«ГјГ§Г®ГўГ ГІГҐГ«Гј Г± ГіГЄГ Г§Г Г­Г­Г»Г¬ ГЁГ¬ГҐГ­ГҐГ¬ ГіГ¦ГҐ Г±ГіГ№ГҐГ±ГІГўГіГҐГІ");
             };
 
-            var user = new Models.User() //создаем нового пользователя
+            var user = new Models.User()
             {
                 Username = username
             };
                       
-            using (var sha256Hash = SHA256.Create()) //значение в пространстве
+            using (var sha256Hash = SHA256.Create())
             {
                 byte[] passwordBytes = sha256Hash.ComputeHash(Encoding.UTF8.GetBytes(password));
                 user.PasswordHash = BitConverter.ToString(passwordBytes).Replace("-", String.Empty);
             };
 
-            _context.Users.Add(user); //добавляем user
-            _context.SaveChanges(); //сохраняем в бд
+            _context.Users.Add(user);
+            _context.SaveChanges();
 
-            _logger.LogInformation($"Успешная регистрация пользователя {username}");
-            return Ok($"Пользователь {username} успешно зарегистрирован, Хеш: {user.PasswordHash}"); //возврат успеха с Хешом
+            _logger.LogInformation($"Г“Г±ГЇГҐГёГ­Г Гї Г°ГҐГЈГЁГ±ГІГ°Г Г¶ГЁГї ГЇГ®Г«ГјГ§Г®ГўГ ГІГҐГ«Гї {username}");
+            return Ok($"ГЏГ®Г«ГјГ§Г®ГўГ ГІГҐГ«Гј {username} ГіГ±ГЇГҐГёГ­Г® Г§Г Г°ГҐГЈГЁГ±ГІГ°ГЁГ°Г®ГўГ Г­, Г•ГҐГё: {user.PasswordHash}");
         }
 
         [HttpPost("login")]
         public IActionResult Login(string username, string password)
         {
-            var user = _context.Users.First(u => u.Username == username); //поиск по имени в бд
-            if (user == null) //проверка существования пользователя
+            var user = _context.Users.First(u => u.Username == username);
+            if (user == null)
             {
-                //возврат ошибку, если не нашли пользователя
-                return NotFound("Error 404: Пользователя с таким именем не существует");
+                return NotFound("Error 404: ГЏГ®Г«ГјГ§Г®ГўГ ГІГҐГ«Гї Г± ГІГ ГЄГЁГ¬ ГЁГ¬ГҐГ­ГҐГ¬ Г­ГҐ Г±ГіГ№ГҐГ±ГІГўГіГҐГІ");
             }
 
-            //создаем экземпляр хеша пароля на проверку пароля
             using (var sha256Hash = SHA256.Create())
             {
                 byte[] passwordBytes = sha256Hash.ComputeHash(Encoding.UTF8.GetBytes(password));
@@ -70,12 +68,12 @@ namespace AccountingApp.Controllers
 
                 if (hashedPassword != user.PasswordHash)
                 {
-                    return Unauthorized("Error 403: Неверный пароль");
+                    return Unauthorized("Error 403: ГЌГҐГўГҐГ°Г­Г»Г© ГЇГ Г°Г®Г«Гј");
                 }
             }
 
             var claims = new List<Claim> { new Claim(ClaimTypes.Name, username) };
-            // создаем JWT-токен
+
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("TytNeHitrimSposobomYaKlady256Bit"));
             var jwt = new JwtSecurityToken(
                     issuer: "tgk",
@@ -84,7 +82,6 @@ namespace AccountingApp.Controllers
                     expires: DateTime.UtcNow.AddMinutes(2),
                     signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256));
 
-            //Успешный успех в случае успеха
             var token = new JwtSecurityTokenHandler().WriteToken(jwt);
 
             return Ok(new { token });
