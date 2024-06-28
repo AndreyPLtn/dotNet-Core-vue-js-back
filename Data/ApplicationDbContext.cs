@@ -6,10 +6,10 @@ namespace AccountingApp.Data
     public class ApplicationDbContext : DbContext
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
-        public DbSet<User> Users { get; set; } //модель пользовтаеля
-        public DbSet<Account> Accounts { get; set; } //модель счета
-        public DbSet<CurrencyRate> CurrencyRates { get; set; } //модель курса
-        public DbSet<Transaction> Transactions { get; set; } //модель перевода
+        public DbSet<User> Users { get; set; }
+        public DbSet<Account> Accounts { get; set; }
+        public DbSet<CurrencyRate> CurrencyRates { get; set; }
+        public DbSet<Transaction> Transactions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

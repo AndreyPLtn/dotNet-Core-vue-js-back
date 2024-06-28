@@ -24,58 +24,50 @@ namespace AccountingApp.Controllers
         [HttpPost("register")]
         public IActionResult Register(string username, string password)
         {
-            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password)) //проверка заполнения имя/пароль
+            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
             {
                 return BadRequest("Error 400. Заполните пустые поля");
             }
 
-            if (_context.Users.Any(u => u.Username == username)) //проверка свободного имени
+            if (_context.Users.Any(u => u.Username == username))
             {
                 return Conflict("Error 409. Пользователь с указанным именем уже существует");
             };
 
-            var user = new Models.User() //создаем нового пользователя
+            var user = new Models.User()
             {
                 Username = username
             };
-                      
-            using (var sha256Hash = SHA256.Create()) //значение в пространстве
-            {
-                byte[] passwordBytes = sha256Hash.ComputeHash(Encoding.UTF8.GetBytes(password));
-                user.PasswordHash = BitConverter.ToString(passwordBytes).Replace("-", String.Empty);
-            };
 
-            _context.Users.Add(user); //добавляем user
-            _context.SaveChanges(); //сохраняем в бд
+            byte[] passwordBytes = SHA256.HashData(Encoding.UTF8.GetBytes(password));
+            user.PasswordHash = BitConverter.ToString(passwordBytes).Replace("-", string.Empty); 
 
-            _logger.LogInformation($"Успешная регистрация пользователя {username}");
-            return Ok($"Пользователь {username} успешно зарегистрирован, Хеш: {user.PasswordHash}"); //возврат успеха с Хешом
+            _context.Users.Add(user);
+            _context.SaveChanges();
+
+            _logger.LogInformation("Успешная регистрация пользователя {Username}", username);
+            return Ok($"Пользователь {username} успешно зарегистрирован, Хеш: {user.PasswordHash}");
         }
 
         [HttpPost("login")]
         public IActionResult Login(string username, string password)
         {
-            var user = _context.Users.First(u => u.Username == username); //поиск по имени в бд
-            if (user == null) //проверка существования пользователя
+            var user = _context.Users.First(u => u.Username == username);
+            if (user == null)
             {
-                //возврат ошибку, если не нашли пользователя
                 return NotFound("Error 404: Пользователя с таким именем не существует");
             }
 
-            //создаем экземпляр хеша пароля на проверку пароля
-            using (var sha256Hash = SHA256.Create())
-            {
-                byte[] passwordBytes = sha256Hash.ComputeHash(Encoding.UTF8.GetBytes(password));
-                string hashedPassword = BitConverter.ToString(passwordBytes).Replace("-", string.Empty);
+            byte[] passwordBytes = SHA256.HashData(Encoding.UTF8.GetBytes(password));
+            string hashedPassword = BitConverter.ToString(passwordBytes).Replace("-", string.Empty);
 
-                if (hashedPassword != user.PasswordHash)
-                {
-                    return Unauthorized("Error 403: Неверный пароль");
-                }
+            if (hashedPassword != user.PasswordHash)
+            {
+                return Unauthorized("Error 403: Неверный пароль");
             }
 
-            var claims = new List<Claim> { new Claim(ClaimTypes.Name, username) };
-            // создаем JWT-токен
+            var claims = new List<Claim> { new(ClaimTypes.Name, username) };
+            
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("TytNeHitrimSposobomYaKlady256Bit"));
             var jwt = new JwtSecurityToken(
                     issuer: "tgk",
@@ -84,7 +76,6 @@ namespace AccountingApp.Controllers
                     expires: DateTime.UtcNow.AddMinutes(2),
                     signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256));
 
-            //Успешный успех в случае успеха
             var token = new JwtSecurityTokenHandler().WriteToken(jwt);
 
             return Ok(new { token });
