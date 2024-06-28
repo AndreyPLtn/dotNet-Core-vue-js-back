@@ -26,12 +26,12 @@ namespace AccountingApp.Controllers
         {
             if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
             {
-                return BadRequest("Error 400. Заполните пустые поля");
+                return BadRequest("Error 400. Г‡Г ГЇГ®Г«Г­ГЁГІГҐ ГЇГіГ±ГІГ»ГҐ ГЇГ®Г«Гї");
             }
 
             if (_context.Users.Any(u => u.Username == username))
             {
-                return Conflict("Error 409. Пользователь с указанным именем уже существует");
+                return Conflict("Error 409. ГЏГ®Г«ГјГ§Г®ГўГ ГІГҐГ«Гј Г± ГіГЄГ Г§Г Г­Г­Г»Г¬ ГЁГ¬ГҐГ­ГҐГ¬ ГіГ¦ГҐ Г±ГіГ№ГҐГ±ГІГўГіГҐГІ");
             };
 
             var user = new Models.User()
@@ -42,20 +42,20 @@ namespace AccountingApp.Controllers
             byte[] passwordBytes = SHA256.HashData(Encoding.UTF8.GetBytes(password));
             user.PasswordHash = BitConverter.ToString(passwordBytes).Replace("-", string.Empty); 
 
-            _context.Users.Add(user);
-            _context.SaveChanges();
+            _context.Users.Add(user); //РґРѕР±Р°РІР»СЏРµРј user
+            _context.SaveChanges(); //СЃРѕС…СЂР°РЅСЏРµРј РІ Р±Рґ
 
-            _logger.LogInformation("Успешная регистрация пользователя {Username}", username);
-            return Ok($"Пользователь {username} успешно зарегистрирован, Хеш: {user.PasswordHash}");
+            _logger.LogInformation("РЈСЃРїРµС€РЅР°СЏ СЂРµРіРёСЃС‚СЂР°С†РёСЏ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ {Username}", username);
+            return Ok($"РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ {username} СѓСЃРїРµС€РЅРѕ Р·Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°РЅ, РҐРµС€: {user.PasswordHash}");
         }
 
         [HttpPost("login")]
         public IActionResult Login(string username, string password)
         {
-            var user = _context.Users.First(u => u.Username == username);
-            if (user == null)
+            var user = _context.Users.First(u => u.Username == username); //РїРѕРёСЃРє РїРѕ РёРјРµРЅРё РІ Р±Рґ
+            if (user == null) //РїСЂРѕРІРµСЂРєР° СЃСѓС‰РµСЃС‚РІРѕРІР°РЅРёСЏ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ
             {
-                return NotFound("Error 404: Пользователя с таким именем не существует");
+                return NotFound("Error 404: РџРѕР»СЊР·РѕРІР°С‚РµР»СЏ СЃ С‚Р°РєРёРј РёРјРµРЅРµРј РЅРµ СЃСѓС‰РµСЃС‚РІСѓРµС‚");
             }
 
             byte[] passwordBytes = SHA256.HashData(Encoding.UTF8.GetBytes(password));
@@ -63,7 +63,7 @@ namespace AccountingApp.Controllers
 
             if (hashedPassword != user.PasswordHash)
             {
-                return Unauthorized("Error 403: Неверный пароль");
+                return Unauthorized("Error 403: РќРµРІРµСЂРЅС‹Р№ РїР°СЂРѕР»СЊ");
             }
 
             var claims = new List<Claim> { new(ClaimTypes.Name, username) };
@@ -76,6 +76,7 @@ namespace AccountingApp.Controllers
                     expires: DateTime.UtcNow.AddMinutes(2),
                     signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256));
 
+            //РЈСЃРїРµС€РЅС‹Р№ СѓСЃРїРµС… РІ СЃР»СѓС‡Р°Рµ СѓСЃРїРµС…Р°
             var token = new JwtSecurityTokenHandler().WriteToken(jwt);
 
             return Ok(new { token });
