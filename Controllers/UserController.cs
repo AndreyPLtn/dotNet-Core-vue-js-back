@@ -26,12 +26,13 @@ namespace AccountingApp.Controllers
         {
             if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
             {
-                return BadRequest("Error 400. Çàïîëíèòå ïóñòûå ïîëÿ");
+                return BadRequest("Не указаны имя пользователя или пароль");
             }
 
             if (_context.Users.Any(u => u.Username == username))
             {
-                return Conflict("Error 409. Ïîëüçîâàòåëü ñ óêàçàííûì èìåíåì óæå ñóùåñòâóåò");
+                _logger.LogWarning("Попытка регистрации с уже существующим именем пользователя: {Username}", username);
+                return Conflict("Имя пользователя занято");
             };
 
             var user = new Models.User()
@@ -42,8 +43,8 @@ namespace AccountingApp.Controllers
             byte[] passwordBytes = SHA256.HashData(Encoding.UTF8.GetBytes(password));
             user.PasswordHash = BitConverter.ToString(passwordBytes).Replace("-", string.Empty); 
 
-            _context.Users.Add(user); //добавляем user
-            _context.SaveChanges(); //сохраняем в бд
+            _context.Users.Add(user);
+            _context.SaveChanges();
 
             _logger.LogInformation("Успешная регистрация пользователя {Username}", username);
             return Ok($"Пользователь {username} успешно зарегистрирован, Хеш: {user.PasswordHash}");
@@ -52,10 +53,11 @@ namespace AccountingApp.Controllers
         [HttpPost("login")]
         public IActionResult Login(string username, string password)
         {
-            var user = _context.Users.First(u => u.Username == username); //поиск по имени в бд
-            if (user == null) //проверка существования пользователя
+            var user = _context.Users.First(u => u.Username == username);
+            if (user == null)
             {
-                return NotFound("Error 404: Пользователя с таким именем не существует");
+                _logger.LogWarning("Попытка входа с несуществующим именем пользователя: {Username}", username);
+                return NotFound("Пользователя с таким именем не существует");
             }
 
             byte[] passwordBytes = SHA256.HashData(Encoding.UTF8.GetBytes(password));
@@ -63,7 +65,8 @@ namespace AccountingApp.Controllers
 
             if (hashedPassword != user.PasswordHash)
             {
-                return Unauthorized("Error 403: Неверный пароль");
+                _logger.LogWarning("Попытка входа с неверным паролем для пользователя: {Username}", username);
+                return Unauthorized("Неверный пароль");
             }
 
             var claims = new List<Claim> { new(ClaimTypes.Name, username) };
@@ -76,7 +79,6 @@ namespace AccountingApp.Controllers
                     expires: DateTime.UtcNow.AddMinutes(2),
                     signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256));
 
-            //Успешный успех в случае успеха
             var token = new JwtSecurityTokenHandler().WriteToken(jwt);
 
             return Ok(new { token });

@@ -10,11 +10,13 @@ namespace AccountingApp.Controllers
     [Route("[controller]")]
     public class AccountController : ControllerBase
     {
+        private readonly ILogger<AccountController> _logger;
         private readonly ApplicationDbContext _context;
         private readonly HashSet<string> _supportedCurrencies = ["RUB", "MNT"]; // MNT - код тугриков
 
-        public AccountController(ApplicationDbContext context)
+        public AccountController(ApplicationDbContext context, ILogger<AccountController> logger)
         {
+            _logger = logger;
             _context = context;
         }
         private static ClaimsIdentity? GetIdentity(HttpContext httpContext)
@@ -55,7 +57,7 @@ namespace AccountingApp.Controllers
         }
 
         [Authorize]
-        [HttpPost("account/create")]
+        [HttpPost("create")]
         public IActionResult CreateAccount(string currency)
         {
             if (string.IsNullOrEmpty(currency))
@@ -77,6 +79,7 @@ namespace AccountingApp.Controllers
             var accountCounter = _context.Accounts.Count(a => a.UserId == user.Id);
             if (accountCounter >= 5)
             {
+                _logger.LogWarning("Создание более 5 аккаунтов для пользователя {Username} невозможно", user.Username);
                 return BadRequest("Не больше 5 аккаунтов");
             }
 
@@ -90,11 +93,12 @@ namespace AccountingApp.Controllers
             _context.Accounts.Add(newAccount);
             _context.SaveChanges();
 
+            _logger.LogInformation("Создан новый аккаунт для пользователя {Username}, AccountId: {AccountId}", user.Username, newAccount.Id);
             return Ok(new { user.Username, AccountId = newAccount.Id, Currency = currency, Accounts = GetAccounts(user.Id) });
         }
 
         [Authorize]
-        [HttpPost("account/convert")]
+        [HttpPost("convert")]
         public IActionResult ConvertCurrency(int accountId, string targetCurrency)
         {
             var validationResult = ValidateUser(out var user);
@@ -125,6 +129,7 @@ namespace AccountingApp.Controllers
 
             if (currencyRate == null)
             {
+                _logger.LogWarning("Курс конвертации не найден для валюты {FromCurrency} в {ToCurrency}", account.Currency, targetCurrency);
                 return BadRequest("Курс конвертации для данной валюты не найден");
             }
 
@@ -133,11 +138,12 @@ namespace AccountingApp.Controllers
 
             _context.SaveChanges();
 
+            _logger.LogInformation("Успешная конвертация для аккаунта {AccountId} пользователя {Username} в {NewCurrency}", account.Id, user.Username, account.Currency);
             return Ok(new { AccountId = account.Id, NewCurrency = account.Currency, NewBalance = account.Balance, Accounts = GetAccounts(user.Id) });
         }
 
         [Authorize]
-        [HttpPost("account/transaction")]
+        [HttpPost("transaction")]
         public IActionResult TransactionMoney(int fromAccountId, int toAccountId, decimal amount)
         {
             var validationResult = ValidateUser(out var user);
@@ -160,6 +166,8 @@ namespace AccountingApp.Controllers
 
             if (fromAccount.Balance < amount)
             {
+                _logger.LogWarning("Недостаточно средств для перевода с аккаунта {FromAccountId} " +
+                                "на аккаунт {ToAccountId} пользователя {Username}", fromAccountId, toAccountId, user.Username);
                 return BadRequest("Недостаточно средству у счета-отправителя");
             }
 
@@ -183,11 +191,13 @@ namespace AccountingApp.Controllers
             _context.Transactions.Add(transaction);
             _context.SaveChanges();
 
+            _logger.LogInformation("Транзакция с аккаунта {FromAccountId} на аккаунт {ToAccountId}" +
+                                    " пользователя {Username}", fromAccountId, toAccountId, user.Username);
             return Ok(new { transaction, Accounts = GetAccounts(user.Id) });
         }
 
         [Authorize]
-        [HttpGet("account/getAccounts")]
+        [HttpGet("getAccounts")]
         public IActionResult GetAccounts()
         {
             var validationResult = ValidateUser(out var user);

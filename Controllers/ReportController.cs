@@ -9,11 +9,13 @@ namespace AccountingApp.Controllers
     [Route("[controller]")]
     public class ReportController : ControllerBase
     {
+        private readonly ILogger<ReportController> _logger;
         private readonly ApplicationDbContext _context;
 
-        public ReportController(ApplicationDbContext context)
+        public ReportController(ApplicationDbContext context, ILogger<ReportController> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         [Authorize]
@@ -102,6 +104,7 @@ namespace AccountingApp.Controllers
                 t.ToAccountId
             }).ToList();
 
+            _logger.LogInformation("Отчет для {Username} успешно создан", username);
             return Ok(reportData);
         }
     }
