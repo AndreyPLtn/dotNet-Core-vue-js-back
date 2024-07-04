@@ -1,9 +1,15 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace AccountingApp.Models
 {
     public class User
     {
         public int Id { get; set; }
-        public string? Username { get; set; }
-        public string? PasswordHash { get; set; }
+
+        [Required]
+        public required string Username { get; set; }
+
+        [Required]
+        public required string PasswordHash { get; set; }
     }
-}   
+}

@@ -1,11 +1,15 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace AccountingApp.Models
 {
     public class Account
     {
         public int Id { get; set; }
-        public string? Currency { get; set; }
+
+        [Required]
+        public required string Currency { get; set; }
         public decimal Balance { get; set; }
-        public int UserId { get; set; }
-        public User? User { get; set; }
+        public required int UserId { get; set; }
+        public required User User { get; set; }
     }
 }

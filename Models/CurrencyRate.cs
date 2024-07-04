@@ -1,10 +1,18 @@
-﻿namespace AccountingApp.Models
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace AccountingApp.Models
 {
     public class CurrencyRate
-    {
+    {   
         public int Id { get; set; }
-        public string? FromCurrency { get; set; }
-        public string? ToCurrency { get; set; }
+
+        [Required]
+        public required string FromCurrency { get; set; }
+
+        [Required]
+        public required string ToCurrency { get; set; }
+
+        [Required]
         public decimal Rate { get; set; }
     }
 }
